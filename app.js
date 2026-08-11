@@ -12,6 +12,8 @@
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   const COLUMNS = [
+    { key: "orderType",    label: "Order\nType",       width: 96,  align: "center" },
+    { key: "releaseDate",  label: "Release\nDate",     width: 104, align: "center" },
     { key: "group",        label: "Group",             width: 150, align: "group",  filter: false },
     { key: "priority",     label: "Color\nPriority",   width: 92,  align: "center" },
     { key: "orderNumber",  label: "Order\nNumber",     width: 98,  align: "center" },
@@ -49,10 +51,12 @@
     { max: 100, cls: "b5", label: "81–100" }
   ];
 
-  /* A day counts as "green" in the Analytics panel from here up */
+  /* A day counts as "green" in the month header summary from here up */
   const GREEN_AT = 61;
 
+  /* The window is 1–3 months wide; 3 is both the default and the hard cap */
   const MONTHS_SHOWN = 3;
+  const MAX_MONTHS = 3;
 
   /* ------------------------------------------------------------------
      Data
@@ -65,7 +69,8 @@
       open: true,
       rows: [
         {
-          id: "r1", priority: "Black", orderNumber: "BMN1231", receiveDate: "23-Jul-13", dueDate: "23-Jul-13",
+          id: "r1", orderType: "Regular", releaseDate: "23-Jul-13",
+          priority: "Black", orderNumber: "BMN1231", receiveDate: "23-Jul-13", dueDate: "23-Jul-13",
           quantity: 66, customerName: "Pareek Amit", customerCode: "5466788",
           itemCode: "AREB5092381", itemDescp: "SB2-NOTCH-KOTH-ABC-11", expanded: true,
           rm: [
@@ -74,7 +79,8 @@
           ]
         },
         {
-          id: "r2", priority: "Black", orderNumber: "BMN1244", receiveDate: "24-Jul-13", dueDate: "02-Aug-13",
+          id: "r2", orderType: "Export", releaseDate: "26-Jul-13",
+          priority: "Black", orderNumber: "BMN1244", receiveDate: "24-Jul-13", dueDate: "02-Aug-13",
           quantity: 120, customerName: "Sharma Ravi", customerCode: "5466792",
           itemCode: "AREB5092390", itemDescp: "SB2-NOTCH-KOTH-ABC-14", expanded: false,
           rm: [
@@ -82,7 +88,8 @@
           ]
         },
         {
-          id: "r3", priority: "Red", orderNumber: "BMN1258", receiveDate: "26-Jul-13", dueDate: "09-Aug-13",
+          id: "r3", orderType: "Regular", releaseDate: "29-Jul-13",
+          priority: "Red", orderNumber: "BMN1258", receiveDate: "26-Jul-13", dueDate: "09-Aug-13",
           quantity: 45, customerName: "Iyer Meena", customerCode: "5466801",
           itemCode: "AREB5092404", itemDescp: "SB2-NOTCH-KOTH-ABC-21", expanded: false,
           rm: [
@@ -98,7 +105,8 @@
       open: false,
       rows: [
         {
-          id: "r4", priority: "Red", orderNumber: "BMN1302", receiveDate: "28-Jul-13", dueDate: "12-Aug-13",
+          id: "r4", orderType: "Urgent", releaseDate: "31-Jul-13",
+          priority: "Red", orderNumber: "BMN1302", receiveDate: "28-Jul-13", dueDate: "12-Aug-13",
           quantity: 88, customerName: "Deshmukh Kiran", customerCode: "5466814",
           itemCode: "AREB5092419", itemDescp: "SB2-NOTCH-KOTH-ABC-32", expanded: false,
           rm: [
@@ -106,7 +114,8 @@
           ]
         },
         {
-          id: "r5", priority: "Yellow", orderNumber: "BMN1315", receiveDate: "30-Jul-13", dueDate: "18-Aug-13",
+          id: "r5", orderType: "Export", releaseDate: "02-Aug-13",
+          priority: "Yellow", orderNumber: "BMN1315", receiveDate: "30-Jul-13", dueDate: "18-Aug-13",
           quantity: 210, customerName: "Nair Anjali", customerCode: "5466827",
           itemCode: "AREB5092428", itemDescp: "SB2-NOTCH-KOTH-ABC-45", expanded: false,
           rm: [
@@ -151,17 +160,31 @@
 
   function dayCoverage(year, month, day) {
     const dow = new Date(year, month, day).getDay();
-    if (dow === 0) return { orders: 0, fullKit: 0, coverage: null };  /* Sunday */
+    /* Sat and Sun both run, on a lighter order book than the working week */
+    const weekend = dow === 0 || dow === 6;
 
     const h = hash32(year * 10000 + (month + 1) * 100 + day);
-    const orders = (dow === 6 ? 3 : 9) + (h % (dow === 6 ? 9 : 24));
+    const orders = (weekend ? 3 : 9) + (h % (weekend ? 9 : 24));
     /* Best of two draws — skews coverage high, so shortfall days stand out
        against a mostly-covered month instead of the whole grid running warm */
     const pct = Math.max((h >>> 8) % 101, (h >>> 18) % 101);
     const fullKit = Math.round((orders * pct) / 100);
 
-    return { orders: orders, fullKit: fullKit, coverage: Math.round((fullKit / orders) * 100) };
+    /* Whatever isn't full kit splits between partial and no kit */
+    const short = orders - fullKit;
+    const partialKit = Math.round((short * (60 + ((h >>> 24) % 36))) / 100);
+
+    return {
+      orders: orders,
+      fullKit: fullKit,
+      partialKit: partialKit,
+      noKit: short - partialKit,
+      coverage: Math.round((fullKit / orders) * 100)
+    };
   }
+
+  /* Two-digit readout for the hover card — matches "07" in the spec */
+  const pad2 = (n) => (n < 10 ? "0" + n : String(n));
 
   const bucketFor = (coverage) => BUCKETS.find((b) => coverage <= b.max) || BUCKETS[BUCKETS.length - 1];
 
@@ -248,8 +271,18 @@
   const today = new Date();
   const THIS_MONTH = new Date(today.getFullYear(), today.getMonth(), 1);
 
-  /* The window's last (right-most) month; the two before it fill in behind */
+  /* Sortable YYYYMMDD key — days past today are out of scope and render greyed */
+  const dayKey = (year, month, day) => year * 10000 + month * 100 + day;
+  const TODAY_KEY = dayKey(today.getFullYear(), today.getMonth(), today.getDate());
+  const isFuture = (year, month, day) => dayKey(year, month, day) > TODAY_KEY;
+
+  /* Absolute month index — makes "is this within 3 months of that?" one subtraction */
+  const absMonth = (year, month) => year * 12 + month;
+  const THIS_ABS = absMonth(THIS_MONTH.getFullYear(), THIS_MONTH.getMonth());
+
+  /* The window's last (right-most) month; the months before it fill in behind */
   let anchor = new Date(THIS_MONTH);
+  let monthSpan = MONTHS_SHOWN;
   let selectedDay = null;
 
   const sameDay = (a, y, m, d) => a && a.year === y && a.month === m && a.day === d;
@@ -275,37 +308,23 @@
     const month = Number(cell.dataset.month);
     const day   = Number(cell.dataset.day);
     const data  = dayCoverage(year, month, day);
-    const stamp = DAY_NAMES[new Date(year, month, day).getDay()] +
-      ", " + day + " " + MONTHS[month] + " " + year;
 
     daytip.textContent = "";
     daytip.className = "daytip";
-    daytip.appendChild(el("div", "daytip__date", stamp));
+    daytip.appendChild(el("div", "daytip__title", "Details"));
 
     if (!data.orders) {
       daytip.appendChild(el("p", "daytip__empty", "No orders due."));
       return;
     }
 
-    const bucket = bucketFor(data.coverage);
-    daytip.classList.add("daytip--" + bucket.cls);
-
-    const value = el("div", "daytip__val", String(data.coverage) + "%");
-    value.appendChild(el("small", null, "kit coverage"));
-    daytip.appendChild(value);
-
-    const bar = el("div", "daytip__bar");
-    const barFill = el("i");
-    barFill.style.width = data.coverage + "%";
-    bar.appendChild(barFill);
-    daytip.appendChild(bar);
-
-    [["Orders due", data.orders],
-     ["Full kit", data.fullKit],
-     ["Short", data.orders - data.fullKit]].forEach((pair) => {
+    [["No Of Orders", data.orders],
+     ["Full Kit", data.fullKit],
+     ["Partial Kit", data.partialKit],
+     ["No Kit", data.noKit]].forEach((pair) => {
       const row = el("div", "daytip__row");
       row.appendChild(el("span", null, pair[0]));
-      row.appendChild(el("b", null, String(pair[1])));
+      row.appendChild(el("b", null, pad2(pair[1])));
       daytip.appendChild(row);
     });
   }
@@ -318,13 +337,18 @@
     const area = body.getBoundingClientRect();
     const box  = cell.getBoundingClientRect();
 
-    let left = box.left - area.left + box.width / 2 - daytip.offsetWidth / 2;
+    const center = box.left - area.left + box.width / 2;
+    let left = center - daytip.offsetWidth / 2;
     left = Math.max(4, Math.min(left, area.width - daytip.offsetWidth - 4));
 
     /* Prefer above the cell; drop below when it would clip the card top */
-    const above = box.top - area.top - daytip.offsetHeight - 8;
-    const top = above < 0 ? box.bottom - area.top + 8 : above;
+    const above = box.top - area.top - daytip.offsetHeight - 9;
+    const below = above < 0;
+    const top = below ? box.bottom - area.top + 9 : above;
 
+    daytip.classList.toggle("daytip--below", below);
+    /* Keep the pointer on the cell even when the card is clamped to an edge */
+    daytip.style.setProperty("--arrow-x", (center - left) + "px");
     daytip.style.left = left + "px";
     daytip.style.top = top + "px";
   }
@@ -374,6 +398,15 @@
 
       cell.appendChild(el("span", "day__n", String(d)));
 
+      if (isFuture(year, month, d)) {
+        /* Beyond today: no coverage to report yet, so the cell is inert */
+        cell.classList.add("day--future");
+        cell.disabled = true;
+        cell.setAttribute("aria-label", d + " " + MONTHS[month] + " " + year + " — upcoming, no coverage yet");
+        grid.appendChild(cell);
+        continue;
+      }
+
       if (!data.orders) {
         cell.classList.add("day--none");
         cell.setAttribute("aria-label", d + " " + MONTHS[month] + " " + year + " — no orders due");
@@ -408,26 +441,14 @@
     return { node: card, green: green, red: red, month: month, year: year };
   }
 
-  function renderAnalytics(stats) {
-    const body = $("#analyticsBody");
-    body.textContent = "";
-    stats.slice().reverse().forEach((stat) => {
-      const total = stat.green + stat.red;
-      const tr = el("tr");
-      tr.appendChild(el("td", null, MONTHS[stat.month]));
-      tr.appendChild(el("td", null, String(stat.green)));
-      tr.appendChild(el("td", null, String(stat.red)));
-      tr.appendChild(el("td", null, (total ? Math.round((stat.green / total) * 100) : 0) + "%"));
-      body.appendChild(tr);
-    });
-  }
-
   function renderCalendar() {
     hideTip();
     calMonths.textContent = "";
+    /* Column count follows the span so a 1- or 2-month window doesn't stretch */
+    calMonths.dataset.cols = String(monthSpan);
 
     const stats = [];
-    for (let i = MONTHS_SHOWN - 1; i >= 0; i--) {
+    for (let i = monthSpan - 1; i >= 0; i--) {
       const cursor = new Date(anchor.getFullYear(), anchor.getMonth() - i, 1);
       const built = buildMonth(cursor.getFullYear(), cursor.getMonth());
       calMonths.appendChild(built.node);
@@ -436,16 +457,18 @@
 
     const first = stats[0];
     const last = stats[stats.length - 1];
-    calRange.textContent = first.year === last.year
-      ? MONTHS[first.month] + " – " + MONTHS[last.month] + " " + last.year
-      : MONTHS[first.month] + " " + first.year + " – " + MONTHS[last.month] + " " + last.year;
+    calRange.textContent = first.year === last.year && first.month === last.month
+      ? MONTHS[first.month] + " " + first.year
+      : first.year === last.year
+        ? MONTHS[first.month] + " – " + MONTHS[last.month] + " " + last.year
+        : MONTHS[first.month] + " " + first.year + " – " + MONTHS[last.month] + " " + last.year;
 
     const atToday = anchor.getFullYear() === THIS_MONTH.getFullYear() &&
                     anchor.getMonth() === THIS_MONTH.getMonth();
     calNext.disabled = atToday;
-    calToday.disabled = atToday;
+    calToday.disabled = atToday && monthSpan === MONTHS_SHOWN;
 
-    renderAnalytics(stats);
+    renderMonthPick();
   }
 
   /* Events ----------------------------------------------------------- */
@@ -474,7 +497,7 @@
 
   calMonths.addEventListener("click", (event) => {
     const cell = event.target.closest(".day");
-    if (!cell || cell.classList.contains("day--none")) return;
+    if (!cell || cell.classList.contains("day--none") || cell.classList.contains("day--future")) return;
 
     selectDay({
       year: Number(cell.dataset.year),
@@ -483,9 +506,11 @@
     });
   });
 
+  const tippable = (cell) => cell && !cell.classList.contains("day--future");
+
   calMonths.addEventListener("pointerover", (event) => {
     const cell = event.target.closest(".day");
-    if (cell) showTip(cell);
+    if (tippable(cell)) showTip(cell);
   });
 
   calMonths.addEventListener("pointerout", (event) => {
@@ -496,7 +521,7 @@
   /* Keyboard gets the same readout as the pointer */
   calMonths.addEventListener("focusin", (event) => {
     const cell = event.target.closest(".day");
-    if (cell) showTip(cell);
+    if (tippable(cell)) showTip(cell);
   });
   calMonths.addEventListener("focusout", hideTip);
 
@@ -508,13 +533,138 @@
 
   calPrev.addEventListener("click", () => shift(-1));
   calNext.addEventListener("click", () => shift(1));
-  calToday.addEventListener("click", () => { anchor = new Date(THIS_MONTH); renderCalendar(); });
+
+  /* "Today" is the way back to the default view: this month, full 3-month span */
+  calToday.addEventListener("click", () => {
+    anchor = new Date(THIS_MONTH);
+    monthSpan = MONTHS_SHOWN;
+    renderCalendar();
+  });
 
   calValues.addEventListener("change", () => {
     calRoot.classList.toggle("is-values", calValues.checked);
   });
 
   window.addEventListener("scroll", hideTip, true);
+
+  /* ==================================================================
+     3. Month picker — choose the window outright, 1 to 3 months
+     ================================================================== */
+
+  const monthPick      = $("#monthPick");
+  const monthPickBtn   = $("#monthPickBtn");
+  const monthPickPanel = $("#monthPickPanel");
+  const monthPickGrid  = $("#monthPickGrid");
+  const monthPickText  = $("#monthPickText");
+  const monthPickYear  = $("#monthPickYear");
+  const monthPickPrev  = $("#monthPickPrev");
+  const monthPickNext  = $("#monthPickNext");
+  const monthPickHint  = $("#monthPickHint");
+
+  /* Year on show in the grid, and the first month of a range mid-pick */
+  let pickYear = anchor.getFullYear();
+  let pickStart = null;
+
+  const windowEnd = () => absMonth(anchor.getFullYear(), anchor.getMonth());
+
+  function setWindow(endAbs, span) {
+    monthSpan = Math.max(1, Math.min(MAX_MONTHS, span));
+    anchor = new Date(Math.floor(endAbs / 12), endAbs % 12, 1);
+    renderCalendar();
+  }
+
+  /* Called from renderCalendar, so the label and grid never drift from the view */
+  function renderMonthPick() {
+    monthPickText.textContent = calRange.textContent;
+    if (monthPickPanel.hidden) return;
+
+    const endAbs = windowEnd();
+    const startAbs = endAbs - (monthSpan - 1);
+
+    monthPickYear.textContent = String(pickYear);
+    monthPickNext.disabled = pickYear >= THIS_MONTH.getFullYear();
+
+    monthPickGrid.textContent = "";
+    MONTHS.forEach((name, m) => {
+      const abs = absMonth(pickYear, m);
+      const btn = el("button", "mpick", name);
+      btn.type = "button";
+      btn.dataset.abs = String(abs);
+
+      if (abs > THIS_ABS) {
+        /* Same rule as the day cells: nothing past the current month */
+        btn.disabled = true;
+        btn.title = "Upcoming — no coverage yet";
+      } else if (abs >= startAbs && abs <= endAbs) {
+        btn.classList.add("is-in");
+        if (abs === startAbs) btn.classList.add("is-first");
+        if (abs === endAbs) btn.classList.add("is-last");
+        btn.setAttribute("aria-pressed", "true");
+      }
+      if (pickStart !== null && abs === pickStart) btn.classList.add("is-anchor");
+
+      monthPickGrid.appendChild(btn);
+    });
+
+    monthPickHint.textContent = pickStart === null
+      ? "Pick a month, then a second one to widen — " + MAX_MONTHS + " months max."
+      : "Pick the other end within " + MAX_MONTHS + " months, or keep this single month.";
+  }
+
+  function setMonthPickOpen(open) {
+    monthPickPanel.hidden = !open;
+    monthPickBtn.setAttribute("aria-expanded", String(open));
+    if (open) {
+      pickStart = null;
+      pickYear = anchor.getFullYear();
+    }
+    renderMonthPick();
+  }
+
+  monthPickGrid.addEventListener("click", (event) => {
+    const btn = event.target.closest(".mpick");
+    if (!btn || btn.disabled) return;
+    const abs = Number(btn.dataset.abs);
+
+    /* First click narrows to that one month and applies straight away; a second
+       click within the cap widens the window. Anything further afield is read
+       as the start of a fresh range rather than a mis-click to be rejected. */
+    if (pickStart === null || Math.abs(abs - pickStart) > MAX_MONTHS - 1) {
+      pickStart = abs;
+      setWindow(abs, 1);
+      return;
+    }
+
+    const lo = Math.min(pickStart, abs);
+    const hi = Math.max(pickStart, abs);
+    pickStart = null;
+    setWindow(hi, hi - lo + 1);
+    setMonthPickOpen(false);
+    monthPickBtn.focus();
+  });
+
+  monthPickBtn.addEventListener("click", () => setMonthPickOpen(monthPickPanel.hidden));
+
+  monthPickPrev.addEventListener("click", () => { pickYear--; renderMonthPick(); });
+  monthPickNext.addEventListener("click", () => {
+    if (pickYear < THIS_MONTH.getFullYear()) { pickYear++; renderMonthPick(); }
+  });
+
+  /* mousedown, not click: picking a month rebuilds the grid, so by the time a
+     click reaches the document its target is detached and would read as
+     "outside" — closing the panel mid-pick. */
+  document.addEventListener("mousedown", (event) => {
+    if (monthPickPanel.hidden) return;
+    if (monthPick.contains(event.target)) return;
+    setMonthPickOpen(false);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !monthPickPanel.hidden) {
+      setMonthPickOpen(false);
+      monthPickBtn.focus();
+    }
+  });
 
   renderCalendar();
   /* ==================================================================

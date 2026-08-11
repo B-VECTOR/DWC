@@ -34,6 +34,8 @@
   --cov-4:           #90b667;   --cov-4-ink: #1e3010;   --cov-4-ring: #6d9247;
   --cov-5:           #8fd0a0;   --cov-5-ink: #103524;   --cov-5-ring: #5cab74;
   --cov-none:        #f1f2f4;   --cov-none-ink: #6d7684; --cov-none-ring: #e2e4e8;
+  /* Days after today carry no coverage yet — flat grey, one step back from --cov-none */
+  --cov-future:      #e7e9ec;   --cov-future-ink: #a7aeb9; --cov-future-ring: #dcdfe4;
 
   /* Dark surfaces */
   --ink-900:         #000000;
@@ -438,53 +440,6 @@ svg { display: block; width: 100%; height: 100%; }
 /* Nested indent */
 .tree__children .tree__children .tree__item { padding-left: 30px; }
 
-/* ----------------------------------------------------------- ANALYTICS */
-
-.analytics {
-  margin: auto 10px 0;
-  padding: 9px 10px 5px;
-  border: 1px solid #3a3a3a;
-  border-radius: var(--radius);
-  background: #1b1b1b;
-}
-
-.analytics__title {
-  margin: 0 0 7px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid #3a3a3a;
-  font-size: 12px;
-  font-weight: 500;
-  color: #fff;
-}
-
-.analytics__table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 10.5px;
-}
-
-.analytics__table th {
-  padding: 0 4px 6px;
-  font-weight: 500;
-  color: #e6e7ea;
-  text-align: center;
-  vertical-align: bottom;
-  line-height: 1.25;
-  white-space: nowrap;
-}
-
-.analytics__table th:first-child,
-.analytics__table td:first-child { text-align: left; }
-
-.analytics__table td {
-  padding: 4px 4px;
-  color: #d3d5d9;
-  text-align: center;
-  font-weight: 300;
-}
-
-.analytics__table tbody tr + tr td { border-top: 1px solid #2d2d2d; }
-
 /* =====================================================================
    MAIN
    ===================================================================== */
@@ -735,6 +690,144 @@ svg { display: block; width: 100%; height: 100%; }
   white-space: nowrap;
 }
 
+/* Month picker -------------------------------------------------------- */
+
+.monthpick { position: relative; }
+
+.monthpick__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--ink-700);
+  color: var(--text-invert-2);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .16s var(--ease), color .16s var(--ease);
+}
+
+.monthpick__btn:hover { background: var(--ink-600); color: #fff; }
+.monthpick__btn[aria-expanded="true"] { background: var(--accent); color: #fff; }
+
+.monthpick__icon { width: 14px; height: 14px; flex: 0 0 auto; }
+.monthpick__text { font-variant-numeric: tabular-nums; }
+
+.monthpick__caret {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  transition: transform .18s var(--ease);
+}
+
+.monthpick__btn[aria-expanded="true"] .monthpick__caret { transform: rotate(180deg); }
+
+.monthpick__panel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 7px);
+  right: 0;
+  width: 234px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.monthpick__panel[hidden] { display: none; }
+
+.monthpick__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 2px 7px;
+  margin-bottom: 7px;
+  border-bottom: 1px solid var(--border);
+}
+
+.monthpick__year {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.monthpick__nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background .16s var(--ease), color .16s var(--ease);
+}
+
+.monthpick__nav:hover { background: var(--surface-3); color: var(--accent); }
+.monthpick__nav:disabled { opacity: .3; cursor: default; background: transparent; color: var(--text-2); }
+
+.monthpick__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.mpick {
+  height: 27px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background .14s var(--ease), border-color .14s var(--ease), color .14s var(--ease);
+}
+
+.mpick:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Months inside the live window read as one block, ends rounded */
+.mpick.is-in {
+  border-color: var(--selected);
+  background: var(--selected);
+  color: #fff;
+  font-weight: 500;
+}
+
+.mpick.is-in:hover { background: var(--selected); color: #fff; }
+
+/* The month a half-finished range is measured from */
+.mpick.is-anchor { box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 3px var(--accent); }
+
+.mpick:disabled {
+  border-color: var(--cov-future-ring);
+  background: var(--cov-future);
+  color: var(--cov-future-ink);
+  cursor: default;
+}
+
+.mpick:disabled:hover { border-color: var(--cov-future-ring); color: var(--cov-future-ink); }
+
+.monthpick__hint {
+  margin: 7px 2px 0;
+  font-size: 10.5px;
+  font-weight: 300;
+  line-height: 1.35;
+  color: var(--text-3);
+}
+
 /* Month stepper ------------------------------------------------------- */
 
 .stepper {
@@ -837,8 +930,22 @@ svg { display: block; width: 100%; height: 100%; }
   gap: 12px;
 }
 
-@media (max-width: 1080px) { .cal__months { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 720px)  { .cal__months { grid-template-columns: minmax(0, 1fr); } }
+/* A narrower window keeps the day cells the same size rather than blowing
+   one month up to full width */
+.cal__months[data-cols="1"] { grid-template-columns: minmax(0, 1fr); }
+.cal__months[data-cols="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.cal__months[data-cols="1"] .mon,
+.cal__months[data-cols="2"] .mon { max-width: 400px; }
+
+@media (max-width: 1080px) {
+  .cal__months,
+  .cal__months[data-cols="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 720px) {
+  .cal__months,
+  .cal__months[data-cols="2"] { grid-template-columns: minmax(0, 1fr); }
+}
 
 .mon {
   min-width: 0;
@@ -919,6 +1026,15 @@ svg { display: block; width: 100%; height: 100%; }
   cursor: default;
 }
 
+.day--future {
+  --fill: var(--cov-future);
+  --ink: var(--cov-future-ink);
+  --ring: var(--cov-future-ring);
+  font-weight: 400;
+  cursor: default;
+  pointer-events: none;
+}
+
 .day--b1 { --fill: var(--cov-1); --ink: var(--cov-1-ink); --ring: var(--cov-1-ring); }
 .day--b2 { --fill: var(--cov-2); --ink: var(--cov-2-ink); --ring: var(--cov-2-ring); }
 .day--b3 { --fill: var(--cov-3); --ink: var(--cov-3-ink); --ring: var(--cov-3-ring); }
@@ -970,68 +1086,58 @@ svg { display: block; width: 100%; height: 100%; }
 .daytip {
   position: absolute;
   z-index: 20;
-  width: 168px;
-  padding: 9px 11px 10px;
-  border-radius: var(--radius-sm);
-  background: var(--ink-850);
+  width: 182px;
+  padding: 10px 13px 11px;
+  border-radius: var(--radius);
+  background: var(--ink-700);
   color: #fff;
   box-shadow: var(--shadow-lg);
   pointer-events: none;
 }
 
-.daytip__date {
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--text-invert-2);
-  white-space: nowrap;
+/* Pointer aims at the hovered cell; --arrow-x is set as the card is placed */
+.daytip::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: clamp(12px, var(--arrow-x, 50%), calc(100% - 12px));
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  background: var(--ink-700);
+  transform: rotate(45deg);
+  border-radius: 2px;
 }
 
-.daytip__val {
-  margin-top: 1px;
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 1.1;
+.daytip--below::after { bottom: auto; top: -5px; }
+
+.daytip__title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  padding-bottom: 7px;
+  margin-bottom: 5px;
+  border-bottom: 1px dashed #7d7d7d;
 }
-
-.daytip__val small {
-  margin-left: 5px;
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--text-invert-2);
-}
-
-.daytip__bar {
-  height: 4px;
-  margin: 7px 0 8px;
-  border-radius: 999px;
-  background: var(--ink-600);
-  overflow: hidden;
-}
-
-.daytip__bar i { display: block; height: 100%; border-radius: 999px; background: var(--tipfill, var(--cov-5)); }
-
-.daytip--b1 { --tipfill: var(--cov-1); }
-.daytip--b2 { --tipfill: var(--cov-2); }
-.daytip--b3 { --tipfill: var(--cov-3); }
-.daytip--b4 { --tipfill: var(--cov-4); }
-.daytip--b5 { --tipfill: var(--cov-5); }
 
 .daytip__row {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
-  font-size: 10.5px;
-  line-height: 1.7;
-  color: var(--text-invert-2);
+  align-items: baseline;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 2;
+  color: #f0f1f3;
 }
 
 .daytip__row b {
-  font-weight: 500;
+  font-weight: 600;
   color: #fff;
   font-variant-numeric: tabular-nums;
 }
 
-.daytip__empty { font-size: 10.5px; color: var(--text-invert-2); }
+.daytip__empty { font-size: 11.5px; color: var(--text-invert-2); }
 
 @media (prefers-reduced-motion: reduce) {
   .day, .toggle__track, .toggle__knob { transition: none; }

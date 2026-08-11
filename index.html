@@ -203,21 +203,6 @@
           </div>
         </div>
       </nav>
-
-      <section class="analytics" aria-label="Analytics">
-        <h2 class="analytics__title">Analytics</h2>
-        <table class="analytics__table">
-          <thead>
-            <tr>
-              <th scope="col">Months</th>
-              <th scope="col">No Of<br />Green</th>
-              <th scope="col">No Of<br />Red</th>
-              <th scope="col">% Of<br />Green</th>
-            </tr>
-          </thead>
-          <tbody id="analyticsBody"></tbody>
-        </table>
-      </section>
     </div>
   </aside>
 
@@ -291,7 +276,33 @@
             <span class="toggle__text">Show %</span>
           </label>
 
-          <div class="stepper" role="group" aria-label="Shift the three-month window">
+          <div class="monthpick" id="monthPick">
+            <button class="monthpick__btn" id="monthPickBtn" type="button" aria-expanded="false" aria-controls="monthPickPanel">
+              <span class="monthpick__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 9.5h17M8 3.5v3M16 3.5v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              </span>
+              <span class="monthpick__text" id="monthPickText">Select months</span>
+              <span class="monthpick__caret" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M6 9.5l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+            </button>
+
+            <div class="monthpick__panel" id="monthPickPanel" hidden>
+              <div class="monthpick__head">
+                <button class="monthpick__nav" id="monthPickPrev" type="button" aria-label="Previous year">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M14.5 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <span class="monthpick__year" id="monthPickYear">—</span>
+                <button class="monthpick__nav" id="monthPickNext" type="button" aria-label="Next year">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M9.5 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
+              <div class="monthpick__grid" id="monthPickGrid" role="group" aria-label="Months"></div>
+              <p class="monthpick__hint" id="monthPickHint"></p>
+            </div>
+          </div>
+
+          <div class="stepper" role="group" aria-label="Shift the calendar window">
             <button class="stepper__btn" id="calPrev" type="button" aria-label="Shift back one month">
               <svg viewBox="0 0 24 24" fill="none"><path d="M14.5 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
