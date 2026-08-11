@@ -12,9 +12,9 @@
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   const COLUMNS = [
+    { key: "group",        label: "Group",             width: 150, align: "group",  filter: false },
     { key: "orderType",    label: "Order\nType",       width: 96,  align: "center" },
     { key: "releaseDate",  label: "Release\nDate",     width: 104, align: "center" },
-    { key: "group",        label: "Group",             width: 150, align: "group",  filter: false },
     { key: "priority",     label: "Color\nPriority",   width: 92,  align: "center" },
     { key: "orderNumber",  label: "Order\nNumber",     width: 98,  align: "center" },
     { key: "receiveDate",  label: "Order Receive\nDate", width: 112, align: "center" },
