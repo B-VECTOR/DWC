@@ -316,7 +316,29 @@
     </section>
 
     <!-- Orders table -->
-    <section class="card orders">
+    <section class="card orders is-empty" id="orders" aria-labelledby="ordersTitle">
+      <header class="card__head orders__bar">
+        <div class="orders__heading">
+          <h2 class="card__title" id="ordersTitle">Order Details</h2>
+          <p class="orders__sub" id="ordersDate">No date selected</p>
+        </div>
+
+        <button class="orders__clear" id="ordersClear" type="button" hidden>
+          <span class="orders__clear-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          </span>
+          Clear day
+        </button>
+      </header>
+
+      <div class="orders__blank">
+        <span class="orders__blank-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 9.5h17M8 3.5v3M16 3.5v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 13.5h3M8 17h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </span>
+        <p class="orders__blank-title">No day selected</p>
+        <p class="orders__blank-text">Pick a day in the calendar above to see the orders due that day, grouped by kit availability.</p>
+      </div>
+
       <div class="orders__viewport">
         <div class="orders__scroll" id="ordersScroll">
           <div class="orders__table" id="ordersTable">
