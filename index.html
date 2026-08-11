@@ -270,6 +270,21 @@
         </div>
 
         <div class="cal__actions">
+          <div class="viewseg" role="group" aria-label="Calendar layout">
+            <button class="viewseg__btn is-on" id="viewGrid" type="button" aria-pressed="true" title="Month grids">
+              <span class="viewseg__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="3.5" width="7" height="7" rx="1.4" stroke="currentColor" stroke-width="1.7"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.4" stroke="currentColor" stroke-width="1.7"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.4" stroke="currentColor" stroke-width="1.7"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.4" stroke="currentColor" stroke-width="1.7"/></svg>
+              </span>
+              <span class="viewseg__label">Grid</span>
+            </button>
+            <button class="viewseg__btn" id="viewLinear" type="button" aria-pressed="false" title="One row per month, days across">
+              <span class="viewseg__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4.5" width="17" height="4.5" rx="1.4" stroke="currentColor" stroke-width="1.7"/><rect x="3.5" y="15" width="17" height="4.5" rx="1.4" stroke="currentColor" stroke-width="1.7"/><path d="M9.2 4.5v4.5M14.8 4.5v4.5M9.2 15v4.5M14.8 15v4.5" stroke="currentColor" stroke-width="1.2"/></svg>
+              </span>
+              <span class="viewseg__label">Rows</span>
+            </button>
+          </div>
+
           <label class="toggle">
             <input type="checkbox" id="calValues" />
             <span class="toggle__track" aria-hidden="true"><span class="toggle__knob"></span></span>
@@ -321,7 +336,14 @@
           <span class="scale__none"><i class="scale__swatch scale__swatch--none"></i>No orders due</span>
         </div>
 
-        <div class="cal__months" id="calMonths"></div>
+        <div class="cal__views" id="calViews">
+          <div class="cal__months" id="calMonths"></div>
+          <div class="lin" id="calLinear" hidden>
+            <div class="lin__scroll" id="calLinearScroll">
+              <div class="lin__table" id="calLinearTable"></div>
+            </div>
+          </div>
+        </div>
         <div class="daytip" id="daytip" role="tooltip" hidden></div>
       </div>
     </section>

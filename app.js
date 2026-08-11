@@ -54,9 +54,15 @@
   /* A day counts as "green" in the month header summary from here up */
   const GREEN_AT = 61;
 
-  /* The window is 1–3 months wide; 3 is both the default and the hard cap */
+  /* The window is 1–3 months wide; 3 is both the default and the grid's cap.
+     The row layout stacks months instead of sitting them side by side, so it
+     can hold twice as many before the day cells get cramped. */
   const MONTHS_SHOWN = 3;
   const MAX_MONTHS = 3;
+  const MAX_MONTHS_LINEAR = 6;
+
+  /* Days per row in the linear layout — always 31 so dates line up down the rows */
+  const LINEAR_SLOTS = 31;
 
   /* ------------------------------------------------------------------
      Data
@@ -259,7 +265,13 @@
   const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   const calRoot   = $(".cal");
+  const calViews  = $("#calViews");
   const calMonths = $("#calMonths");
+  const calLinear = $("#calLinear");
+  const calLinearScroll = $("#calLinearScroll");
+  const calLinearTable = $("#calLinearTable");
+  const viewGrid   = $("#viewGrid");
+  const viewLinear = $("#viewLinear");
   const calRange  = $("#calRange");
   const scaleRamp = $("#scaleRamp");
   const daytip    = $("#daytip");
@@ -284,6 +296,10 @@
   let anchor = new Date(THIS_MONTH);
   let monthSpan = MONTHS_SHOWN;
   let selectedDay = null;
+
+  /* "grid" = a month card per month; "linear" = a month per row, days across */
+  let calView = "grid";
+  const capMonths = () => (calView === "linear" ? MAX_MONTHS_LINEAR : MAX_MONTHS);
 
   const sameDay = (a, y, m, d) => a && a.year === y && a.month === m && a.day === d;
 
@@ -355,6 +371,76 @@
 
   function hideTip() { daytip.hidden = true; }
 
+  /* Day cells -------------------------------------------------------- */
+
+  /* One day cell, shared by both layouts, so fills, rings, the % readout and
+     the tooltip behave identically however the days happen to be arranged.
+     `withDow` adds the weekday letter the row layout needs — in a linear month
+     the weekday no longer falls out of the column position.
+     Returns the cell plus its contribution to the month's green-day tally. */
+  function buildDayCell(year, month, d, withDow) {
+    const data = dayCoverage(year, month, d);
+    const cell = el("button", "day");
+    cell.type = "button";
+    cell.dataset.year = String(year);
+    cell.dataset.month = String(month);
+    cell.dataset.day = String(d);
+
+    if (withDow) {
+      const jsDay = new Date(year, month, d).getDay();
+      const letter = el("span", "day__dow", DOW[dowIndex(jsDay)]);
+      letter.setAttribute("aria-hidden", "true");
+      cell.appendChild(letter);
+      if (jsDay === 0 || jsDay === 6) cell.classList.add("day--wknd");
+    }
+
+    cell.appendChild(el("span", "day__n", String(d)));
+
+    const stamp = d + " " + MONTHS[month] + " " + year;
+
+    if (isFuture(year, month, d)) {
+      /* Beyond today: no coverage to report yet, so the cell is inert */
+      cell.classList.add("day--future");
+      cell.disabled = true;
+      cell.setAttribute("aria-label", stamp + " — upcoming, no coverage yet");
+      return { cell: cell, green: 0, rated: 0 };
+    }
+
+    let green = 0;
+    let rated = 0;
+
+    if (!data.orders) {
+      cell.classList.add("day--none");
+      cell.setAttribute("aria-label", stamp + " — no orders due");
+    } else {
+      const bucket = bucketFor(data.coverage);
+      cell.classList.add("day--" + bucket.cls);
+      cell.appendChild(el("span", "day__v", data.coverage + "%"));
+      cell.setAttribute("aria-label",
+        stamp + " — " + data.coverage + "% kit coverage, " +
+        data.fullKit + " of " + data.orders + " orders full kit");
+
+      rated = 1;
+      if (data.coverage >= GREEN_AT) green = 1;
+    }
+
+    if (year === today.getFullYear() && month === today.getMonth() && d === today.getDate()) {
+      cell.classList.add("is-today");
+    }
+    if (sameDay(selectedDay, year, month, d)) {
+      cell.classList.add("is-selected");
+      cell.setAttribute("aria-pressed", "true");
+    }
+
+    return { cell: cell, green: green, rated: rated };
+  }
+
+  /* The same summary sits in the month card head and at the end of a month row */
+  function greenSummary(node, green, rated, suffix) {
+    node.textContent = rated ? Math.round((green / rated) * 100) + "%" + suffix : "—";
+    node.title = green + " of " + rated + " days at " + GREEN_AT + "% coverage or better";
+  }
+
   /* Month grids ------------------------------------------------------ */
 
   function buildMonth(year, month) {
@@ -386,77 +472,107 @@
     }
 
     let green = 0;
-    let red = 0;
+    let rated = 0;
 
     for (let d = 1; d <= total; d++) {
-      const data = dayCoverage(year, month, d);
-      const cell = el("button", "day");
-      cell.type = "button";
-      cell.dataset.year = String(year);
-      cell.dataset.month = String(month);
-      cell.dataset.day = String(d);
-
-      cell.appendChild(el("span", "day__n", String(d)));
-
-      if (isFuture(year, month, d)) {
-        /* Beyond today: no coverage to report yet, so the cell is inert */
-        cell.classList.add("day--future");
-        cell.disabled = true;
-        cell.setAttribute("aria-label", d + " " + MONTHS[month] + " " + year + " — upcoming, no coverage yet");
-        grid.appendChild(cell);
-        continue;
-      }
-
-      if (!data.orders) {
-        cell.classList.add("day--none");
-        cell.setAttribute("aria-label", d + " " + MONTHS[month] + " " + year + " — no orders due");
-      } else {
-        const bucket = bucketFor(data.coverage);
-        cell.classList.add("day--" + bucket.cls);
-        cell.appendChild(el("span", "day__v", data.coverage + "%"));
-        cell.setAttribute("aria-label",
-          d + " " + MONTHS[month] + " " + year + " — " + data.coverage + "% kit coverage, " +
-          data.fullKit + " of " + data.orders + " orders full kit");
-
-        if (data.coverage >= GREEN_AT) green++; else red++;
-      }
-
-      if (year === today.getFullYear() && month === today.getMonth() && d === today.getDate()) {
-        cell.classList.add("is-today");
-      }
-      if (sameDay(selectedDay, year, month, d)) {
-        cell.classList.add("is-selected");
-        cell.setAttribute("aria-pressed", "true");
-      }
-
-      grid.appendChild(cell);
+      const built = buildDayCell(year, month, d, false);
+      green += built.green;
+      rated += built.rated;
+      grid.appendChild(built.cell);
     }
 
     card.appendChild(grid);
+    greenSummary(avg, green, rated, " green days");
 
-    const rated = green + red;
-    avg.textContent = rated ? Math.round((green / rated) * 100) + "% green days" : "—";
-    avg.title = green + " of " + rated + " days at " + GREEN_AT + "% coverage or better";
-
-    return { node: card, green: green, red: red, month: month, year: year };
+    return { node: card, month: month, year: year };
   }
+
+  /* Month rows — one row per month, day-of-month across ---------------- */
+
+  function buildLinearRow(year, month) {
+    const row = el("div", "lin__row");
+    if (year === THIS_MONTH.getFullYear() && month === THIS_MONTH.getMonth()) {
+      row.classList.add("is-current");
+    }
+
+    const label = el("div", "lin__label");
+    label.appendChild(el("span", "lin__name", MONTHS_FULL[month]));
+    label.appendChild(el("span", "lin__year", String(year)));
+    row.appendChild(label);
+
+    const days = el("div", "lin__days");
+    const total = daysInMonth(year, month);
+    let green = 0;
+    let rated = 0;
+
+    for (let d = 1; d <= total; d++) {
+      const built = buildDayCell(year, month, d, true);
+      green += built.green;
+      rated += built.rated;
+      days.appendChild(built.cell);
+    }
+
+    /* Short months keep empty slots so the 14th of one month sits directly
+       above the 14th of the next — the whole point of the layout */
+    for (let d = total + 1; d <= LINEAR_SLOTS; d++) {
+      const pad = el("div", "lin__pad");
+      pad.setAttribute("aria-hidden", "true");
+      days.appendChild(pad);
+    }
+
+    row.appendChild(days);
+
+    const stat = el("div", "lin__stat");
+    greenSummary(stat, green, rated, " green");
+    row.appendChild(stat);
+
+    return { node: row, month: month, year: year };
+  }
+
+  function renderLinear(list) {
+    calLinearTable.textContent = "";
+
+    const head = el("div", "lin__row lin__row--head");
+    head.appendChild(el("div", "lin__label"));
+    const nums = el("div", "lin__days");
+    nums.setAttribute("aria-hidden", "true");
+    for (let d = 1; d <= LINEAR_SLOTS; d++) nums.appendChild(el("span", "lin__num", String(d)));
+    head.appendChild(nums);
+    head.appendChild(el("div", "lin__stat lin__stat--cap", "Green days"));
+    calLinearTable.appendChild(head);
+
+    list.forEach((m) => calLinearTable.appendChild(buildLinearRow(m.year, m.month).node));
+  }
+
+  /* Render ------------------------------------------------------------- */
 
   function renderCalendar() {
     hideTip();
-    calMonths.textContent = "";
-    /* Column count follows the span so a 1- or 2-month window doesn't stretch */
-    calMonths.dataset.cols = String(monthSpan);
 
-    const stats = [];
+    /* Oldest month first in both layouts: left to right, then top to bottom */
+    const list = [];
     for (let i = monthSpan - 1; i >= 0; i--) {
       const cursor = new Date(anchor.getFullYear(), anchor.getMonth() - i, 1);
-      const built = buildMonth(cursor.getFullYear(), cursor.getMonth());
-      calMonths.appendChild(built.node);
-      stats.push(built);
+      list.push({ year: cursor.getFullYear(), month: cursor.getMonth() });
     }
 
-    const first = stats[0];
-    const last = stats[stats.length - 1];
+    const linear = linearView();
+    calMonths.hidden = linear;
+    calLinear.hidden = !linear;
+
+    if (linear) {
+      calMonths.textContent = "";
+      renderLinear(list);
+    } else {
+      calLinearTable.textContent = "";
+      calMonths.textContent = "";
+      /* Column count follows the span so a 1- or 2-month window doesn't stretch */
+      calMonths.dataset.cols = String(monthSpan);
+      list.forEach((m) => calMonths.appendChild(buildMonth(m.year, m.month).node));
+    }
+
+    const first = list[0];
+    const last = list[list.length - 1];
     calRange.textContent = first.year === last.year && first.month === last.month
       ? MONTHS[first.month] + " " + first.year
       : first.year === last.year
@@ -495,7 +611,7 @@
     syncOrders();
   }
 
-  calMonths.addEventListener("click", (event) => {
+  calViews.addEventListener("click", (event) => {
     const cell = event.target.closest(".day");
     if (!cell || cell.classList.contains("day--none") || cell.classList.contains("day--future")) return;
 
@@ -508,22 +624,22 @@
 
   const tippable = (cell) => cell && !cell.classList.contains("day--future");
 
-  calMonths.addEventListener("pointerover", (event) => {
+  calViews.addEventListener("pointerover", (event) => {
     const cell = event.target.closest(".day");
     if (tippable(cell)) showTip(cell);
   });
 
-  calMonths.addEventListener("pointerout", (event) => {
+  calViews.addEventListener("pointerout", (event) => {
     const cell = event.target.closest(".day");
     if (cell && !cell.contains(event.relatedTarget)) hideTip();
   });
 
   /* Keyboard gets the same readout as the pointer */
-  calMonths.addEventListener("focusin", (event) => {
+  calViews.addEventListener("focusin", (event) => {
     const cell = event.target.closest(".day");
     if (tippable(cell)) showTip(cell);
   });
-  calMonths.addEventListener("focusout", hideTip);
+  calViews.addEventListener("focusout", hideTip);
 
   function shift(months) {
     anchor = new Date(anchor.getFullYear(), anchor.getMonth() + months, 1);
@@ -543,6 +659,36 @@
 
   calValues.addEventListener("change", () => {
     calRoot.classList.toggle("is-values", calValues.checked);
+  });
+
+  /* Layout switch ----------------------------------------------------- */
+
+  const linearView = () => calView === "linear";
+
+  function setCalView(view) {
+    calView = view === "linear" ? "linear" : "grid";
+
+    viewGrid.classList.toggle("is-on", !linearView());
+    viewLinear.classList.toggle("is-on", linearView());
+    viewGrid.setAttribute("aria-pressed", String(!linearView()));
+    viewLinear.setAttribute("aria-pressed", String(linearView()));
+    calRoot.classList.toggle("is-linear", linearView());
+
+    /* The grid tops out at three months, so a wider row window narrows on the
+       way back rather than spilling into a fourth column */
+    if (monthSpan > capMonths()) monthSpan = capMonths();
+
+    try { localStorage.setItem("dwc.calView", calView); } catch (e) {}
+    renderCalendar();
+  }
+
+  viewGrid.addEventListener("click", () => setCalView("grid"));
+  viewLinear.addEventListener("click", () => setCalView("linear"));
+
+  /* The frozen month / summary columns only earn an edge shadow once days are
+     actually hidden behind them */
+  calLinearScroll.addEventListener("scroll", () => {
+    calLinear.classList.toggle("is-scrolled", calLinearScroll.scrollLeft > 0);
   });
 
   window.addEventListener("scroll", hideTip, true);
@@ -568,7 +714,7 @@
   const windowEnd = () => absMonth(anchor.getFullYear(), anchor.getMonth());
 
   function setWindow(endAbs, span) {
-    monthSpan = Math.max(1, Math.min(MAX_MONTHS, span));
+    monthSpan = Math.max(1, Math.min(capMonths(), span));
     anchor = new Date(Math.floor(endAbs / 12), endAbs % 12, 1);
     renderCalendar();
   }
@@ -607,8 +753,8 @@
     });
 
     monthPickHint.textContent = pickStart === null
-      ? "Pick a month, then a second one to widen — " + MAX_MONTHS + " months max."
-      : "Pick the other end within " + MAX_MONTHS + " months, or keep this single month.";
+      ? "Pick a month, then a second one to widen — " + capMonths() + " months max."
+      : "Pick the other end within " + capMonths() + " months, or keep this single month.";
   }
 
   function setMonthPickOpen(open) {
@@ -629,7 +775,7 @@
     /* First click narrows to that one month and applies straight away; a second
        click within the cap widens the window. Anything further afield is read
        as the start of a fresh range rather than a mis-click to be rejected. */
-    if (pickStart === null || Math.abs(abs - pickStart) > MAX_MONTHS - 1) {
+    if (pickStart === null || Math.abs(abs - pickStart) > capMonths() - 1) {
       pickStart = abs;
       setWindow(abs, 1);
       return;
@@ -666,7 +812,11 @@
     }
   });
 
-  renderCalendar();
+  /* First paint — setCalView renders, so the saved layout is what loads */
+  let savedView = null;
+  try { savedView = localStorage.getItem("dwc.calView"); } catch (e) {}
+  setCalView(savedView === "linear" ? "linear" : "grid");
+
   /* ==================================================================
      4. Orders table
      ================================================================== */

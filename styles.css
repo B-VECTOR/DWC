@@ -117,16 +117,20 @@ svg { display: block; width: 100%; height: 100%; }
 
 /* Scrollbars ---------------------------------------------------------- */
 .orders__scroll,
+.lin__scroll,
 .sidenav__inner,
 .columnspanel__list { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
 
 .orders__scroll::-webkit-scrollbar,
+.lin__scroll::-webkit-scrollbar,
 .sidenav__inner::-webkit-scrollbar,
 .columnspanel__list::-webkit-scrollbar { width: 8px; height: 8px; }
 
-.orders__scroll::-webkit-scrollbar-track { background: transparent; }
+.orders__scroll::-webkit-scrollbar-track,
+.lin__scroll::-webkit-scrollbar-track { background: transparent; }
 
 .orders__scroll::-webkit-scrollbar-thumb,
+.lin__scroll::-webkit-scrollbar-thumb,
 .columnspanel__list::-webkit-scrollbar-thumb {
   background: var(--border-strong);
   border: 3px solid transparent;
@@ -707,6 +711,43 @@ svg { display: block; width: 100%; height: 100%; }
   white-space: nowrap;
 }
 
+/* Layout switch — month grids vs. one row per month --------------------- */
+
+.viewseg {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--ink-700);
+}
+
+.viewseg__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-invert-2);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .16s var(--ease), color .16s var(--ease);
+}
+
+.viewseg__btn:hover { background: var(--ink-600); color: #fff; }
+.viewseg__btn.is-on { background: var(--accent); color: #fff; }
+
+.viewseg__icon { width: 13px; height: 13px; flex: 0 0 auto; }
+
+@media (max-width: 1180px) {
+  .viewseg__label { display: none; }
+  .viewseg__btn { padding: 0 6px; }
+}
+
 /* Month picker -------------------------------------------------------- */
 
 .monthpick { position: relative; }
@@ -947,6 +988,9 @@ svg { display: block; width: 100%; height: 100%; }
   gap: 12px;
 }
 
+/* display: grid would otherwise win over the hidden attribute */
+.cal__months[hidden] { display: none; }
+
 /* A narrower window keeps the day cells the same size rather than blowing
    one month up to full width */
 .cal__months[data-cols="1"] { grid-template-columns: minmax(0, 1fr); }
@@ -1084,6 +1128,153 @@ svg { display: block; width: 100%; height: 100%; }
 /* Values mode: the % replaces the date, which moves to a corner tick */
 .day__n { line-height: 1; }
 .day__v { display: none; line-height: 1; font-size: 10px; }
+
+/* =====================================================================
+   MONTH ROWS — one row per month, day-of-month across
+   ===================================================================== */
+
+.lin[hidden] { display: none; }
+
+/* Cells hold a 22px floor, so a narrow viewport scrolls rather than squeezing
+   31 columns into something unreadable */
+.lin__scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+}
+
+.lin__table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 950px;
+}
+
+.lin__row {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) 66px;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.lin__row.is-current { border-color: var(--border-strong); background: var(--surface); }
+
+/* The date ruler: same three columns, no chrome of its own */
+.lin__row--head {
+  padding: 0 8px 2px;
+  border-color: transparent;
+  background: var(--surface);
+}
+
+/* Month name stays put when the strip scrolls sideways. It has to fill the row
+   height, or day cells slide through the gap above and below it. */
+.lin__label {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  min-width: 0;
+  padding-right: 6px;
+  background: inherit;
+}
+
+/* Only once there is something hidden to the left does the edge need a shadow */
+.lin.is-scrolled .lin__label { box-shadow: 7px 0 8px -7px rgba(16, 24, 40, .35); }
+.lin.is-scrolled .lin__stat { box-shadow: -7px 0 8px -7px rgba(16, 24, 40, .35); }
+
+.lin__name {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lin__year {
+  font-size: 10px;
+  font-weight: 300;
+  line-height: 1.1;
+  color: var(--text-3);
+}
+
+.lin__days {
+  display: grid;
+  grid-template-columns: repeat(31, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.lin__num {
+  text-align: center;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Months shorter than 31 days leave the tail slots empty */
+.lin__pad { height: 30px; }
+
+/* Frozen alongside the label, so the summary survives a sideways scroll */
+.lin__stat {
+  position: sticky;
+  right: 0;
+  z-index: 3;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-left: 6px;
+  background: inherit;
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: right;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.lin__stat--cap {
+  font-size: 9px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  white-space: normal;
+}
+
+/* Day cells in a row: taller than wide, with the weekday letter the layout
+   can't convey by position */
+.lin .day {
+  aspect-ratio: auto;
+  height: 30px;
+  min-height: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.day__dow {
+  font-size: 7.5px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: .2px;
+  opacity: .55;
+}
+
+/* Weekends read as weekends without touching the coverage fill */
+.day--wknd .day__dow { opacity: 1; font-weight: 700; }
+
+/* The % needs the whole cell, and the date tick would land on the letter */
+.cal.is-values .lin .day__dow { display: none; }
 
 .cal.is-values .day__v { display: block; }
 
