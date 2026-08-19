@@ -19,20 +19,23 @@
   /* ---------------------------------------------------------------------
      Coverage scale — 5 buckets, low (red) to high (green).
 
-     Lightness is monotone across the ramp (OKLCH L .50 → .80, every adjacent
-     gap >= .06), so the scale still reads in order under protanopia,
-     deuteranopia, greyscale and print, where the red/green hues collapse.
-     That is why the mid buckets are amber/olive rather than the pale yellow a
-     literal Excel ramp uses — a light yellow in the middle would break the
-     ordering. Each --*-ink is >= 4.5:1 on its own fill; each --*-ring keeps
-     the palest cell delineated against the white card (the 100% fill is only
-     1.8:1 on its own).
+     The three anchors are the house colours, used as-is: red #FF0000 at the
+     bottom, yellow #FFFF05 in the middle, green #008001 at the top. Buckets 2
+     and 4 are straight 50/50 mixes of the anchors either side of them, so the
+     ramp stays on the red → yellow → green line the rest of the product uses.
+
+     Note this ramp is NOT monotone in lightness — a saturated yellow midpoint
+     sits lighter than both ends — so bucket 1 and bucket 5 read as a similar
+     mid-grey in greyscale or under red/green colour blindness. The in-cell %
+     (Show %) and the hover card are what carry the value in those cases.
+     Each --*-ink clears 4.5:1 on its own fill; each --*-ring is the fill at
+     80% so every cell keeps an edge against the white card.
      --------------------------------------------------------------------- */
-  --cov-1:           #ad2528;   --cov-1-ink: #ffffff;   --cov-1-ring: #8a1c1f;
-  --cov-2:           #bd5716;   --cov-2-ink: #ffffff;   --cov-2-ring: #984214;
-  --cov-3:           #b78934;   --cov-3-ink: #231a06;   --cov-3-ring: #8c6822;
-  --cov-4:           #90b667;   --cov-4-ink: #1e3010;   --cov-4-ring: #6d9247;
-  --cov-5:           #8fd0a0;   --cov-5-ink: #103524;   --cov-5-ring: #5cab74;
+  --cov-1:           #ff0000;   --cov-1-ink: #ffffff;   --cov-1-ring: #cc0000;
+  --cov-2:           #ff8003;   --cov-2-ink: #3d1c00;   --cov-2-ring: #cc6602;
+  --cov-3:           #ffff05;   --cov-3-ink: #333300;   --cov-3-ring: #cccc04;
+  --cov-4:           #80c003;   --cov-4-ink: #162300;   --cov-4-ring: #669902;
+  --cov-5:           #008001;   --cov-5-ink: #ffffff;   --cov-5-ring: #006601;
   --cov-none:        #f1f2f4;   --cov-none-ink: #6d7684; --cov-none-ring: #e2e4e8;
   /* Days after today carry no coverage yet — flat grey, one step back from --cov-none */
   --cov-future:      #e7e9ec;   --cov-future-ink: #a7aeb9; --cov-future-ring: #dcdfe4;
@@ -98,7 +101,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   font-size: 12px;
   line-height: 1.35;
   -webkit-font-smoothing: antialiased;
@@ -711,43 +714,6 @@ svg { display: block; width: 100%; height: 100%; }
   white-space: nowrap;
 }
 
-/* Layout switch — month grids vs. one row per month --------------------- */
-
-.viewseg {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px;
-  border-radius: var(--radius-sm);
-  background: var(--ink-700);
-}
-
-.viewseg__btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 24px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-invert-2);
-  font-size: 11px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background .16s var(--ease), color .16s var(--ease);
-}
-
-.viewseg__btn:hover { background: var(--ink-600); color: #fff; }
-.viewseg__btn.is-on { background: var(--accent); color: #fff; }
-
-.viewseg__icon { width: 13px; height: 13px; flex: 0 0 auto; }
-
-@media (max-width: 1180px) {
-  .viewseg__label { display: none; }
-  .viewseg__btn { padding: 0 6px; }
-}
-
 /* Month picker -------------------------------------------------------- */
 
 .monthpick { position: relative; }
@@ -897,12 +863,13 @@ svg { display: block; width: 100%; height: 100%; }
   background: var(--ink-700);
 }
 
-.stepper__btn,
-.stepper__now {
+.stepper__btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 24px;
   height: 24px;
+  padding: 5px;
   border: 0;
   border-radius: 4px;
   background: transparent;
@@ -911,11 +878,7 @@ svg { display: block; width: 100%; height: 100%; }
   transition: background .16s var(--ease), color .16s var(--ease);
 }
 
-.stepper__btn { width: 24px; padding: 5px; }
-.stepper__now { padding: 0 9px; font-size: 11px; font-weight: 500; }
-
-.stepper__btn:hover,
-.stepper__now:hover { background: var(--ink-600); color: #fff; }
+.stepper__btn:hover { background: var(--ink-600); color: #fff; }
 
 .stepper__btn:disabled { opacity: .35; cursor: default; background: transparent; }
 
@@ -927,10 +890,22 @@ svg { display: block; width: 100%; height: 100%; }
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 16px;
+  justify-content: space-between;
+  gap: 8px 20px;
   padding-bottom: 11px;
   margin-bottom: 11px;
   border-bottom: 1px solid var(--border);
+}
+
+/* Legend pieces stay together: caption, then the ramp it names, then the
+   no-data swatch. The basis control is pushed to the far end so it reads as
+   a control rather than one more legend item. */
+.scale__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  min-width: 0;
 }
 
 .scale__cap,
@@ -980,82 +955,54 @@ svg { display: block; width: 100%; height: 100%; }
   white-space: nowrap;
 }
 
-/* Month cards --------------------------------------------------------- */
-
-.cal__months {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-/* display: grid would otherwise win over the hidden attribute */
-.cal__months[hidden] { display: none; }
-
-/* A narrower window keeps the day cells the same size rather than blowing
-   one month up to full width */
-.cal__months[data-cols="1"] { grid-template-columns: minmax(0, 1fr); }
-.cal__months[data-cols="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.cal__months[data-cols="1"] .mon,
-.cal__months[data-cols="2"] .mon { max-width: 400px; }
-
-@media (max-width: 1080px) {
-  .cal__months,
-  .cal__months[data-cols="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@media (max-width: 720px) {
-  .cal__months,
-  .cal__months[data-cols="2"] { grid-template-columns: minmax(0, 1fr); }
-}
-
-.mon {
-  min-width: 0;
-  padding: 9px 10px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-}
-
-.mon.is-current { border-color: var(--border-strong); background: var(--surface); }
-
-.mon__head {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.mon__name { font-size: 12px; font-weight: 500; color: var(--text); }
-.mon__year { font-size: 11px; font-weight: 300; color: var(--text-3); }
-
-.mon__avg {
+/* What counts as covered — two named states, so a plain on/off switch would
+   hide half the answer. It sits in the legend because it defines what the
+   ramp beside it means. */
+.basis {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   margin-left: auto;
-  font-size: 10.5px;
-  font-weight: 500;
-  color: var(--text-2);
-  font-variant-numeric: tabular-nums;
+}
+
+.basis__seg { display: inline-flex; align-items: center; }
+
+.basis__cap {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-3);
   white-space: nowrap;
 }
 
-.mon__dow,
-.mon__grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 3px;
-}
-
-.mon__dow { margin-bottom: 4px; }
-
-.mon__dow span {
-  text-align: center;
-  font-size: 9px;
+.basis__btn {
+  height: 22px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font: inherit;
+  font-size: 10.5px;
   font-weight: 500;
-  letter-spacing: .3px;
-  color: var(--text-3);
-  text-transform: uppercase;
+  cursor: pointer;
+  transition: background .14s var(--ease), border-color .14s var(--ease), color .14s var(--ease);
 }
 
-.mon__pad { aspect-ratio: 1; }
+/* The pair reads as one control: outer corners rounded, inner edge shared */
+.basis__btn:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.basis__btn:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-left: -1px; }
+
+.basis__btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.basis__btn.is-on {
+  z-index: 1;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Selected state stays on the brand primary in both basis modes — the control
+   says which lines the % counts, not which colour the page is in */
+.basis__btn.is-on:hover { border-color: var(--accent); background: var(--accent); color: #fff; }
 
 /* Day cells ----------------------------------------------------------- */
 
@@ -1071,7 +1018,7 @@ svg { display: block; width: 100%; height: 100%; }
   border-radius: 4px;
   background: var(--fill);
   color: var(--ink);
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
@@ -1125,9 +1072,14 @@ svg { display: block; width: 100%; height: 100%; }
   box-shadow: inset 0 0 0 1px var(--ring), 0 0 0 2px var(--surface), 0 0 0 4px var(--selected);
 }
 
-/* Values mode: the % replaces the date, which moves to a corner tick */
-.day__n { line-height: 1; }
-.day__v { display: none; line-height: 1; font-size: 10px; }
+/* The only text a cell ever holds is its weekday and, in values mode, its %.
+   The date lives once, in the ruler at the top of the strip. */
+.day__v {
+  display: none;
+  line-height: 1;
+  font-size: 11.5px;
+  letter-spacing: -.2px;
+}
 
 /* =====================================================================
    MONTH ROWS — one row per month, day-of-month across
@@ -1143,11 +1095,13 @@ svg { display: block; width: 100%; height: 100%; }
   padding-bottom: 2px;
 }
 
+/* 1080px, not 1040: the cell % went to 11.5px for legibility, and a 3-digit
+   "100" needs ~21px of the ~25px that 31 columns now leave per cell */
 .lin__table {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 950px;
+  min-width: 1080px;
 }
 
 .lin__row {
@@ -1213,11 +1167,12 @@ svg { display: block; width: 100%; height: 100%; }
   gap: 3px;
 }
 
+/* The one place a date is printed — the cells below carry weekday and % only */
 .lin__num {
   text-align: center;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 500;
-  color: var(--text-3);
+  color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1258,44 +1213,35 @@ svg { display: block; width: 100%; height: 100%; }
   aspect-ratio: auto;
   height: 30px;
   min-height: 0;
+  min-width: 0;
+  padding: 0 1px;
   flex-direction: column;
   gap: 1px;
+  overflow: hidden;
 }
 
 .day__dow {
-  font-size: 7.5px;
+  font-size: 9.5px;
   font-weight: 500;
   line-height: 1;
   letter-spacing: .2px;
-  opacity: .55;
+  opacity: .8;
 }
 
 /* Weekends read as weekends without touching the coverage fill */
 .day--wknd .day__dow { opacity: 1; font-weight: 700; }
 
-/* The % needs the whole cell, and the date tick would land on the letter */
-.cal.is-values .lin .day__dow { display: none; }
-
+/* Weekday stays put and the % stacks under it — both fit the 30px cell */
 .cal.is-values .day__v { display: block; }
-
 .cal.is-values .day--none .day__v { display: none; }
-
-.cal.is-values .day__n {
-  position: absolute;
-  top: 2px;
-  left: 3px;
-  font-size: 8px;
-  font-weight: 400;
-  opacity: .75;
-}
 
 /* Tooltip ------------------------------------------------------------- */
 
 .daytip {
   position: absolute;
   z-index: 20;
-  width: 182px;
-  padding: 10px 13px 11px;
+  width: 232px;
+  padding: 9px 12px 10px;
   border-radius: var(--radius);
   background: var(--ink-700);
   color: #fff;
@@ -1319,23 +1265,65 @@ svg { display: block; width: 100%; height: 100%; }
 
 .daytip--below::after { bottom: auto; top: -5px; }
 
-.daytip__title {
-  font-size: 12px;
-  font-weight: 500;
-  color: #fff;
-  padding-bottom: 7px;
-  margin-bottom: 5px;
-  border-bottom: 1px dashed #7d7d7d;
+.daytip__date {
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--text-invert-2);
+  white-space: nowrap;
+}
+
+/* The headline: the overall % this cell's fill stands for */
+.daytip__val {
+  margin-top: 1px;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.daytip__val small {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-invert-2);
+}
+
+.daytip__bar {
+  height: 4px;
+  margin: 7px 0 6px;
+  border-radius: 999px;
+  background: var(--ink-600);
+  overflow: hidden;
+}
+
+/* Filled in the bucket's own colour, so the card and the cell agree */
+.daytip__bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--tipfill, var(--cov-5));
+}
+
+.daytip--b1 { --tipfill: var(--cov-1); }
+.daytip--b2 { --tipfill: var(--cov-2); }
+.daytip--b3 { --tipfill: var(--cov-3); }
+.daytip--b4 { --tipfill: var(--cov-4); }
+.daytip--b5 { --tipfill: var(--cov-5); }
+
+.daytip__rows {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 14px;
 }
 
 .daytip__row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 12px;
-  font-size: 12px;
+  gap: 8px;
+  font-size: 11px;
   font-weight: 400;
-  line-height: 2;
+  line-height: 1.75;
   color: #f0f1f3;
 }
 
@@ -1343,6 +1331,21 @@ svg { display: block; width: 100%; height: 100%; }
   font-weight: 600;
   color: #fff;
   font-variant-numeric: tabular-nums;
+}
+
+/* Which lines the headline % is built from — this is what the Full Kit /
+   Full + Partial switch moves */
+.daytip__row.is-counted { color: #fff; }
+
+.daytip__row.is-counted span::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--tipfill, var(--cov-5));
+  vertical-align: middle;
 }
 
 .daytip__empty { font-size: 11.5px; color: var(--text-invert-2); }

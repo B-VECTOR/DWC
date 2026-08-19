@@ -5,7 +5,7 @@
 <title>VectorFlow — Day Wise Coverage</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300..700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -270,21 +270,6 @@
         </div>
 
         <div class="cal__actions">
-          <div class="viewseg" role="group" aria-label="Calendar layout">
-            <button class="viewseg__btn is-on" id="viewGrid" type="button" aria-pressed="true" title="Month grids">
-              <span class="viewseg__icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="3.5" width="7" height="7" rx="1.4" stroke="currentColor" stroke-width="1.7"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.4" stroke="currentColor" stroke-width="1.7"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.4" stroke="currentColor" stroke-width="1.7"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.4" stroke="currentColor" stroke-width="1.7"/></svg>
-              </span>
-              <span class="viewseg__label">Grid</span>
-            </button>
-            <button class="viewseg__btn" id="viewLinear" type="button" aria-pressed="false" title="One row per month, days across">
-              <span class="viewseg__icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4.5" width="17" height="4.5" rx="1.4" stroke="currentColor" stroke-width="1.7"/><rect x="3.5" y="15" width="17" height="4.5" rx="1.4" stroke="currentColor" stroke-width="1.7"/><path d="M9.2 4.5v4.5M14.8 4.5v4.5M9.2 15v4.5M14.8 15v4.5" stroke="currentColor" stroke-width="1.2"/></svg>
-              </span>
-              <span class="viewseg__label">Rows</span>
-            </button>
-          </div>
-
           <label class="toggle">
             <input type="checkbox" id="calValues" />
             <span class="toggle__track" aria-hidden="true"><span class="toggle__knob"></span></span>
@@ -321,7 +306,6 @@
             <button class="stepper__btn" id="calPrev" type="button" aria-label="Shift back one month">
               <svg viewBox="0 0 24 24" fill="none"><path d="M14.5 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
-            <button class="stepper__now" id="calToday" type="button">Today</button>
             <button class="stepper__btn" id="calNext" type="button" aria-label="Shift forward one month">
               <svg viewBox="0 0 24 24" fill="none"><path d="M9.5 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
@@ -331,14 +315,23 @@
 
       <div class="cal__body">
         <div class="scale">
-          <span class="scale__cap">Kit coverage</span>
-          <div class="scale__ramp" id="scaleRamp"></div>
-          <span class="scale__none"><i class="scale__swatch scale__swatch--none"></i>No orders due</span>
+          <div class="scale__legend">
+            <span class="scale__cap">Kit coverage</span>
+            <div class="scale__ramp" id="scaleRamp"></div>
+            <span class="scale__none"><i class="scale__swatch scale__swatch--none"></i>No orders due</span>
+          </div>
+
+          <div class="basis" role="group" aria-label="Count coverage as">
+            <span class="basis__cap">Count as covered</span>
+            <div class="basis__seg">
+              <button class="basis__btn is-on" id="basisFull" type="button" aria-pressed="true" title="Coverage = full kit orders / orders due">Full Kit</button>
+              <button class="basis__btn" id="basisBoth" type="button" aria-pressed="false" title="Coverage = (full kit + partial kit) orders / orders due">Full + Partial</button>
+            </div>
+          </div>
         </div>
 
         <div class="cal__views" id="calViews">
-          <div class="cal__months" id="calMonths"></div>
-          <div class="lin" id="calLinear" hidden>
+          <div class="lin" id="calLinear">
             <div class="lin__scroll" id="calLinearScroll">
               <div class="lin__table" id="calLinearTable"></div>
             </div>
